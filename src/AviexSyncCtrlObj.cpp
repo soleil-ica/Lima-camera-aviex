@@ -82,7 +82,7 @@ void SyncCtrlObj::getExpTime(double& exp_time)
 //-----------------------------------------------------
 void SyncCtrlObj::setLatTime(double lat_time)
 {
-	//@TODO
+	m_cam.setLatencyTime(lat_time);
 }
 
 //-----------------------------------------------------
@@ -90,7 +90,7 @@ void SyncCtrlObj::setLatTime(double lat_time)
 //-----------------------------------------------------
 void SyncCtrlObj::getLatTime(double& lat_time)
 {
-	//@TODO
+	m_cam.getLatencyTime(lat_time);
 }
 
 //-----------------------------------------------------

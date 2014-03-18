@@ -8,7 +8,7 @@
 #include "ThreadUtils.h"
 
 
-	
+
 extern "C"
 {
 #include "mx_util.h"
@@ -16,6 +16,7 @@ extern "C"
 #include "mx_image.h"
 #include "mx_area_detector.h"
 #include "mx_driver.h"
+#include "mx_version.h"
 }
 
 namespace lima
@@ -43,12 +44,18 @@ public:
 	void setLatencyTime(double  period_time);
 	void getGapMultiplier(double& gap_mult);
 	void setGapMultiplier(double  gap_mult);
-	std::string getInternalAcqMode();
-	void setInternalAcqMode(std::string mode);
+	void getMxLibraryVersion(std::string& version);
+	void getInternalAcqMode(std::string& acq_mode);
+	void setInternalAcqMode(const std::string& mode);
 	void getReadoutDelayTime(double& readout_delay);
 	void setReadoutDelayTime(double readout_delay);
 	void getReadoutSpeed(bool& readout_speed);
 	void setReadoutSpeed(bool readout_speed);
+	void getOffsetCorrection(bool& offset_correction);
+	void setOffsetCorrection(bool offset_correction);		
+	void getLinearization(bool& linearization);
+	void setLinearization(bool linearization);	
+	
 	void getInitialDelayTime(double& initial_delay);
 	void setInitialDelayTime(double initial_delay);
 	void setCorrectionFlags(unsigned long);
@@ -57,8 +64,8 @@ public:
 	void startAcq();
 	void stopAcq();
 	void prepareAcq();
-	void reset();
 	Status getStatus();
+	bool isBusy();				// return the state of the detector : true if detector is processing/running
 
 	//-- Related to Synch control object
 	void setTrigMode(TrigMode  mode);
@@ -95,7 +102,7 @@ public:
 private:
 	void _open();							// open (reserves) the camera
 	void _close();							// close (release) the camera
-	bool _is_busy();						// return the state of the detector : true if detector is running
+	void _armDetector();					// do arm/trigger on detector
 
 	//CmdThread class, used to handle some specific tasks (startAcq, stopAcq, ...)
 	class CameraThread: public CmdThread
@@ -108,7 +115,7 @@ private:
 		} ;
 		enum
 		{ // Cmd
-			StartAcq = MaxThreadCmd, StopAcq,
+			StartAcq = MaxThreadCmd, StopAcq,StartMeasureDark, StartMeasureFloodField,
 		} ;
 
 		CameraThread(Camera& cam);
@@ -123,6 +130,7 @@ private:
 		virtual void execCmd(int cmd);
 	private:
 		void execStartAcq();
+		void execStartMeasureCorrection(unsigned measure_type);
 		Camera*		m_cam;
 	} ;
 	friend class CameraThread;
@@ -143,6 +151,8 @@ private:
 	double			m_initial_delay_time;
 	double			m_readout_delay_time;
 	bool			m_readout_speed;
+	bool			m_offset_correction;
+	bool			m_linearization;	
 	unsigned long   m_correction_flags;
 	int				m_nb_frames;
 	int             m_trigger_mode;
@@ -161,7 +171,7 @@ private:
 	struct mx_record_type* m_mx_record;
 
 	/*mutex stuff*/
-	mutable Cond            m_cond;
+	mutable Cond           m_cond;
 
 } ;
 }
