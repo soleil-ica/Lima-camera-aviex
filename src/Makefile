@@ -1,12 +1,14 @@
-roperscientific-objs =  RoperScientificInterface.o RoperScientificCamera.o
-SRCS = $(roperscientific-objs:.o=.cpp) 
+aviex-objs = AviexCamera.o AviexInterface.o AviexDetInfoCtrlObj.o AviexSyncCtrlObj.o AviexRoiCtrlObj.o AviexBinCtrlObj.o
+
+SRCS = $(aviex-objs:.o=.cpp) 
 
 CXXFLAGS += -I../include -I../../../hardware/include -I../../../common/include \
-	-pthread -fPIC -g 
+			-I../sdk/linux/include \
+			-DOS_UNIX -Wall -pthread -fPIC -g
 
-all:	RoperScientific.o
+all:	Aviex.o
 
-RoperScientific.o:	$(roperscientific-objs)
+Aviex.o:	$(aviex-objs)
 	$(LD) -o $@ -r $+
 
 clean:
@@ -19,4 +21,9 @@ clean:
 	-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
 	rm -f $*.d
 
+
 -include $(SRCS:.cpp=.P)
+
+.PHONY: check-syntax
+check-syntax:
+	$(CXX) -Wall -Wextra -fsyntax-only $(CXXFLAGS) $(CHK_SOURCES)
