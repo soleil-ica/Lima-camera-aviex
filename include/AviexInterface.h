@@ -3,6 +3,10 @@
 
 #include "Debug.h"
 #include "AviexCompatibility.h"
+#include "AviexDetInfoCtrlObj.h"
+#include "AviexSyncCtrlObj.h"
+#include "AviexBinCtrlObj.h"
+#include "AviexRoiCtrlObj.h"
 #include "HwInterface.h"
 #include "HwBufferMgr.h"
 
@@ -14,10 +18,6 @@ namespace lima
 namespace Aviex
 {
 class Camera;
-class DetInfoCtrlObj;
-class SyncCtrlObj;
-class BinCtrlObj;
-class RoiCtrlObj;
 /*******************************************************************
  * \class Interface
  * \brief Aviex hardware interface

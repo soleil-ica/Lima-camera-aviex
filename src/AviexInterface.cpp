@@ -1,9 +1,5 @@
 
 #include "AviexCamera.h"
-#include "AviexDetInfoCtrlObj.h"
-#include "AviexSyncCtrlObj.h"
-#include "AviexBinCtrlObj.h"
-#include "AviexRoiCtrlObj.h"
 #include "AviexInterface.h"
 
 
