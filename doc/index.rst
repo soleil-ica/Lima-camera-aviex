@@ -1,5 +1,7 @@
-Aviex
--------
+.. _camera-aviex:
+
+Aviex camera plugin
+-------------------
 
 .. image:: aviex_front.png
 
