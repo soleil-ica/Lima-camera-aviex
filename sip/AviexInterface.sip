@@ -11,7 +11,7 @@ namespace Aviex
 #include <AviexInterface.h>
 %End
   public:
-    Interface(Aviex::Camera& cam);
+    Interface(Aviex::Camera& cam /KeepReference/);
     virtual ~Interface();
 
     //- From HwInterface
