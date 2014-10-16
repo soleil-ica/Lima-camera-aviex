@@ -132,7 +132,8 @@ private:
         virtual void execCmd(int cmd);
     private:
         void execStartAcq();
-        void execStartMeasureCorrection(unsigned measure_type);
+        void execStartMeasureDark();
+        void execStartMeasureFloodField();
         Camera* m_cam;
     } ;
     friend class CameraThread;
@@ -172,6 +173,9 @@ private:
 
     /*mutex stuff*/
     mutable Cond m_cond;
+    
+    long m_binning_x;
+    long m_binning_y;    
 
 } ;
 }
