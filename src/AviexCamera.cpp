@@ -114,7 +114,7 @@ void Camera::CameraThread::execStartAcq()
     // Start acquisition on aviex detector
     m_cam->_armDetector();
 
-    //because mx library return always 0 in mx_get_last_frame_number() if acquisition is CONTINUOUS !! why??
+    //because mx library return always 0 in mx_get_last_frame_number() if acquisition is CONTINUOUS !!
     long initial_fram_num = -1;
     mx_status = mx_area_detector_get_total_num_frames(m_cam->m_mx_record, &initial_fram_num);
     CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
