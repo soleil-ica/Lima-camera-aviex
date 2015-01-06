@@ -1,10 +1,10 @@
 #ifndef AVIEXSYNCCTRLOBJ_H
 #define AVIEXSYNCCTRLOBJ_H
 
-#include "Debug.h"
+#include "lima/Debug.h"
 #include "AviexCompatibility.h"
-#include "HwSyncCtrlObj.h"
-#include "HwInterface.h"
+#include "lima/HwSyncCtrlObj.h"
+#include "lima/HwInterface.h"
 
 namespace lima
 {

@@ -1,14 +1,14 @@
 #ifndef AVIEXINTERFACE_H
 #define AVIEXINTERFACE_H
 
-#include "Debug.h"
+#include "lima/Debug.h"
 #include "AviexCompatibility.h"
 #include "AviexDetInfoCtrlObj.h"
 #include "AviexSyncCtrlObj.h"
 #include "AviexBinCtrlObj.h"
 #include "AviexRoiCtrlObj.h"
-#include "HwInterface.h"
-#include "HwBufferMgr.h"
+#include "lima/HwInterface.h"
+#include "lima/HwBufferMgr.h"
 
 
 using namespace std;
