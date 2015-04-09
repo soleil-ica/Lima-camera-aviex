@@ -19,6 +19,8 @@ extern "C"
 #include "mx_driver.h"
 }
 
+#include <cmath>
+
 #define CHECK_MX_STATUS(status, origin) \
 if(status.code != MXE_SUCCESS) { \
     std::ostringstream err; \
@@ -35,7 +37,7 @@ if(record==0) { \
 //! Camera::CameraThread::CameraThread()
 //---------------------------------------------------------------------------------------
 Camera::CameraThread::CameraThread(Camera& cam)
-: m_cam(&cam)
+:m_cam(&cam)
 {
     DEB_MEMBER_FUNCT();
     DEB_TRACE() << "CameraThread::CameraThread - BEGIN";
@@ -100,7 +102,6 @@ void Camera::CameraThread::execCmd(int cmd)
 //---------------------------------------------------------------------------------------
 void Camera::CameraThread::execStartAcq()
 {
-
     DEB_MEMBER_FUNCT();
 
     DEB_TRACE() << "CameraThread::execStartAcq - BEGIN";
@@ -118,7 +119,7 @@ void Camera::CameraThread::execStartAcq()
     long initial_fram_num = -1;
     mx_status = mx_area_detector_get_total_num_frames(m_cam->m_mx_record, &initial_fram_num);
     CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
-    DEB_TRACE()<<"initial_fram_num  = "<<initial_fram_num;
+    DEB_TRACE() << "initial_fram_num  = " << initial_fram_num;
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // Loop while :
@@ -128,7 +129,7 @@ void Camera::CameraThread::execStartAcq()
     /////////////////////////////////////////////////////////////////////////////////////////
     DEB_TRACE() << "CameraThread::execStartAcq - Loop while 'Nb. acquired frames' < " << (m_cam->m_nb_frames) << " ...";
     bool continueAcq = true;
-    while(continueAcq && (!m_cam->m_nb_frames || m_cam->m_acq_frame_nb < (m_cam->m_nb_frames - 1)) )
+    while(continueAcq && (!m_cam->m_nb_frames || m_cam->m_acq_frame_nb < (m_cam->m_nb_frames - 1)))
     {
         //Force quit the thread if command stop() is launched by client
         if(m_force_stop)
@@ -156,7 +157,7 @@ void Camera::CameraThread::execStartAcq()
         CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
 
         //compute the last frame number
-        last_frame_num = total_frame_num - initial_fram_num -1;
+        last_frame_num = total_frame_num - initial_fram_num - 1;
 
         //Wait while new Frame is not ready 
         if(last_frame_num <= m_cam->m_acq_frame_nb)
@@ -165,8 +166,8 @@ void Camera::CameraThread::execStartAcq()
             continue;
         }
 
-        DEB_TRACE()<<"\t- total_frame_num  = "<<total_frame_num;
-        DEB_TRACE()<<"\t- last_frame_num  = "<<last_frame_num;
+        DEB_TRACE() << "\t- total_frame_num  = " << total_frame_num;
+        DEB_TRACE() << "\t- last_frame_num  = " << last_frame_num;
 
         //New image(s) is ready
         while(last_frame_num > m_cam->m_acq_frame_nb)
@@ -194,17 +195,22 @@ void Camera::CameraThread::execStartAcq()
             CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
             image_frame = ad->image_frame;
 
+            //compute the timestamp of current image
+            DEB_TRACE() << "\t- Compute the Timestamp for the image - " << DEB_VAR1(current_frame_nb);
+            double timestamp = m_cam->computeTimestamp(image_frame, current_frame_nb);
+
             //copy from the Mx buffer to the Lima buffer
             DEB_TRACE() << "\t- Copy Frame From Mx Ptr into the Lima ptr :";
             size_t nb_bytes_to_copy = m_cam->m_frame_size.getWidth() * m_cam->m_frame_size.getHeight() * sizeof(unsigned short);
 
             size_t nb_bytes_copied;
             mx_status = mx_image_copy_1d_pixel_array(image_frame,
-            (unsigned short *)ptr,
-            nb_bytes_to_copy,
-            &nb_bytes_copied);
+                                                     (unsigned short *)ptr,
+                                                     nb_bytes_to_copy,
+                                                     &nb_bytes_copied);
             CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
 
+            DEB_TRACE() << "\t- Timestamp  = " << timestamp << " (ms)";
             DEB_TRACE() << "\t- Frame size  = " << m_cam->m_frame_size;
             DEB_TRACE() << "\t- NB. Bytes to Copy = " << nb_bytes_to_copy;
             DEB_TRACE() << "\t- NB. Copied Bytes  = " << nb_bytes_copied;
@@ -284,7 +290,11 @@ void Camera::CameraThread::execStartMeasureDark()
         DEB_TRACE() << "\t- Prepare the Mx Frame ptr - " << "The unique et only frame in this Mode";
         MX_IMAGE_FRAME *image_frame = NULL;
 
-        // Get the DARK/FLOOD image
+        //Send corrections flags
+        DEB_TRACE() << "\t- Send the list of corrections flags to Mx library - correction_flags = " << m_cam->m_correction_flags;
+        mx_area_detector_set_correction_flags(m_cam->m_mx_record, m_cam->m_correction_flags);
+
+        // Get the DARK image
         mx_status = mx_area_detector_setup_frame(m_cam->m_mx_record, &image_frame);
         CHECK_MX_STATUS(mx_status, "Camera::execStartMeasureDark()");
 
@@ -296,9 +306,10 @@ void Camera::CameraThread::execStartMeasureDark()
         size_t nb_bytes_to_copy = m_cam->m_frame_size.getWidth() * m_cam->m_frame_size.getHeight() * sizeof(unsigned short);
 
         size_t nb_bytes_copied;
-        mx_status = mx_image_copy_1d_pixel_array(image_frame, (unsigned short *)ptr,
-        nb_bytes_to_copy,
-        &nb_bytes_copied);
+        mx_status = mx_image_copy_1d_pixel_array(image_frame,
+                                                 (unsigned short *)ptr,
+                                                 nb_bytes_to_copy,
+                                                 &nb_bytes_copied);
         CHECK_MX_STATUS(mx_status, "Camera::execStartMeasureDark()");
 
         DEB_TRACE() << "\t- Frame size  = " << m_cam->m_frame_size;
@@ -372,8 +383,22 @@ void Camera::CameraThread::execStartMeasureFloodField()
         setStatus(Readout);
         void *ptr = buffer_mgr.getFrameBufferPtr((m_cam->m_nb_frames - 1));
 
+        //Prepare frame Mx Ptr ...
+        DEB_TRACE() << "\t- Prepare the Mx Frame ptr - " << "The unique et only frame in this Mode";
+        MX_IMAGE_FRAME *image_frame = NULL;
+
         // Because, Mx library does not allow transfer_frame for FLOOD_FIELD correctly (size = 4096 instead of 1024 in binnig 4)		
         // -> in case of FLOOD, we take a black image (*ptr initialized with 0) and publish it through newFrameReady()
+        //Send corrections flags
+        DEB_TRACE() << "\t- Send the list of corrections flags to Mx library - correction_flags = " << m_cam->m_correction_flags;
+        mx_area_detector_set_correction_flags(m_cam->m_mx_record, m_cam->m_correction_flags);
+
+        // Get the DARK/FLOOD image
+        mx_status = mx_area_detector_setup_frame(m_cam->m_mx_record, &image_frame);
+        CHECK_MX_STATUS(mx_status, "Camera::execStartMeasureFloodField()");
+
+        mx_status = mx_area_detector_transfer_frame(m_cam->m_mx_record, MXFT_AD_DARK_CURRENT_FRAME, image_frame);
+        CHECK_MX_STATUS(mx_status, "Camera::execStartMeasureFloodField()");
 
         buffer_mgr.setStartTimestamp(Timestamp::now());
 
@@ -413,7 +438,7 @@ int Camera::CameraThread::getNbHwAcquiredFrames()
 //---------------------------------------------------------------------------------------
 //! Camera::Camera()
 //---------------------------------------------------------------------------------------
-Camera::Camera(const std::string& camName, const std::string& databaseFile) :
+Camera::Camera(const std::string& camName, const std::string& databaseFile):
 m_thread(*this),
 m_name(camName),
 m_database_file_name(databaseFile),
@@ -433,6 +458,7 @@ m_latency_time(1.0),
 m_gap_multiplier(1.0),
 m_initial_delay_time(0.0),
 m_readout_delay_time(0.0),
+m_ccd_readout_time(1.0),
 m_readout_speed(false),
 m_correction_flags(0),
 m_acq_mode_name("ONESHOT"),
@@ -593,8 +619,15 @@ void Camera::prepareAcq()
         /*
         mx_status = mx_area_detector_set_binsize(m_mx_record, xbin, ybin); 
         CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()");
-        */
-        
+         */
+
+        // ccd_readout_time
+        DEB_TRACE() << "Get CCD readout time .";
+        mx_status = mx_area_detector_get_detector_readout_time(m_mx_record, &m_ccd_readout_time);
+        CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()");
+        m_ccd_readout_time *= 1000.; // from seconds to milliseconds        
+        DEB_TRACE() << "CCD Readout Time = " << m_ccd_readout_time;
+
         DEB_TRACE() << "Get the Frame Size.";
         long xsize = 0, ysize = 0;
         mx_status = mx_area_detector_get_framesize(m_mx_record, &xsize, &ysize);
@@ -608,7 +641,7 @@ void Camera::prepareAcq()
             m_status = "Prepare Acquisition mode : ONESHOT";
             setNbFrames(1); //@@@@ TODO Check this : force nbFrames to 1
             mx_status = mx_area_detector_set_one_shot_mode(m_mx_record,
-            m_exposure_time);
+                                                           m_exposure_time);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
         else if(m_acq_mode_name == "CONTINUOUS")
@@ -616,7 +649,7 @@ void Camera::prepareAcq()
             DEB_TRACE() << "Acquisition mode : CONTINUOUS";
             m_status = "Prepare Acquisition mode : CONTINUOUS";
             mx_status = mx_area_detector_set_continuous_mode(m_mx_record,
-            m_exposure_time);
+                                                             m_exposure_time);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
         else if(m_acq_mode_name == "MULTIFRAME")
@@ -625,9 +658,9 @@ void Camera::prepareAcq()
             double frame_time = m_exposure_time + m_latency_time - m_readout_delay_time;
             m_status = "Prepare Acquisition mode : MULTIFRAME";
             mx_status = mx_area_detector_set_multiframe_mode(m_mx_record,
-            m_nb_frames,
-            m_exposure_time,
-            frame_time);
+                                                             m_nb_frames,
+                                                             m_exposure_time,
+                                                             frame_time);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
         else if(m_acq_mode_name == "GEOMETRICAL")
@@ -636,11 +669,11 @@ void Camera::prepareAcq()
             double frame_time = m_exposure_time + m_latency_time - m_readout_delay_time;
             m_status = "Prepare Acquisition mode : GEOMETRICAL";
             mx_status = mx_area_detector_set_geometrical_mode(m_mx_record,
-            m_nb_frames,
-            m_exposure_time,
-            frame_time,
-            m_exposure_multiplier,
-            m_gap_multiplier);
+                                                              m_nb_frames,
+                                                              m_exposure_time,
+                                                              frame_time,
+                                                              m_exposure_multiplier,
+                                                              m_gap_multiplier);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
         else if(m_acq_mode_name == "MEASURE_DARK")
@@ -648,8 +681,8 @@ void Camera::prepareAcq()
             DEB_TRACE() << "Acquisition mode : MEASURE_DARK";
             m_status = "Prepare Acquisition mode : MEASURE_DARK";
             mx_status = mx_area_detector_measure_dark_current_frame(m_mx_record,
-            m_exposure_time,
-            m_nb_frames);
+                                                                    m_exposure_time,
+                                                                    m_nb_frames);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
         else if(m_acq_mode_name == "MEASURE_FLOOD_FIELD")
@@ -657,8 +690,8 @@ void Camera::prepareAcq()
             DEB_TRACE() << "Acquisition mode : MEASURE_FLOOD_FIELD";
             m_status = "Prepare Acquisition mode : MEASURE_FLOOD_FIELD";
             mx_status = mx_area_detector_measure_flood_field_frame(m_mx_record,
-            m_exposure_time,
-            m_nb_frames);
+                                                                   m_exposure_time,
+                                                                   m_nb_frames);
             CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()")
         }
 
@@ -1002,11 +1035,11 @@ void Camera::setBin(const Bin& bin)
 
     m_binning_x = bin.getX();
     m_binning_y = bin.getY();
-    
+
     // Define the binning.
     CHECK_MX_RECORD(m_mx_record, "Camera::setBin()");
     mx_status_type mx_status;
-    mx_status = mx_area_detector_set_binsize(m_mx_record,m_binning_x, m_binning_y);
+    mx_status = mx_area_detector_set_binsize(m_mx_record, m_binning_x, m_binning_y);
     CHECK_MX_STATUS(mx_status, "Camera::setBin()")
 
 }
@@ -1023,7 +1056,7 @@ void Camera::getBin(Bin& bin)
     mx_status_type mx_status;
     mx_status = mx_area_detector_get_binsize(m_mx_record, &m_binning_x, &m_binning_y);
     CHECK_MX_STATUS(mx_status, "Camera::getBin()")
-    bin = Bin(m_binning_x, m_binning_y);    
+    bin = Bin(m_binning_x, m_binning_y);
     DEB_RETURN() << DEB_VAR1(bin);
 }
 
@@ -1160,6 +1193,52 @@ std::string Camera::getExtraParam(const std::string& name)
     {
         THROW_HW_ERROR(Error) << "getExtraParam() : Invalid Parameter " << name << " !\n" << "It should be dh_offset_correction, dh_linearization !";
     }
+}
+
+//---------------------------------------------------------------------------------------
+//! Camera::computeTimestamp()
+//---------------------------------------------------------------------------------------
+double Camera::computeTimestamp(MX_IMAGE_FRAME* image_frame, long num_exp)
+{
+    DEB_MEMBER_FUNCT();
+    DEB_TRACE() << "Camera::_open";
+    CHECK_MX_RECORD(m_mx_record, "Camera::computeTimestamp()");
+    mx_status_type mx_status;
+    if(num_exp == 0)
+    {
+        // Keep the three first digits as we want to have the
+        // milliseconds from a number expressed in nanoseconds.
+        int nano = (MXIF_TIMESTAMP_NSEC(image_frame) / 1000000.);
+        m_time_stamp_0 = MXIF_TIMESTAMP_SEC(image_frame) + nano / 1000.;
+    }
+
+    double time_stamp = 0.;
+
+    double mTiming = m_exposure_time + m_latency_time - m_readout_delay_time; //frame_time
+    //double mTiming = mSetup.mTiming;//in the old device, this is was entered in the last parameter of mx_area_detector_set_multiframe_mode()
+    if(m_acq_mode_name == "MULTIFRAME")
+    {
+        m_time_stamp = m_time_stamp_0 + num_exp * (mTiming + m_readout_delay_time) / 1000.;
+    }
+
+    if(m_acq_mode_name == "GEOMETRICAL")
+    {
+        int stored_gap_multiplier = (m_gap_multiplier - 1.0) * 256;
+        double effective_gap_multiplier = (stored_gap_multiplier / 256.0) + 1.0;
+
+        double A = m_exposure_time + m_readout_delay_time + m_ccd_readout_time;
+        double B = mTiming - m_exposure_time - m_ccd_readout_time;
+        double G = effective_gap_multiplier;
+        double n = double(num_exp);
+
+        m_time_stamp = m_time_stamp_0;
+        if(num_exp > 0)
+        {
+            m_time_stamp = m_time_stamp_0 + (A * n + (((std::pow(G, n) - 1) / (G - 1)) * B)) / 1000.;
+        }
+    }
+
+    return m_time_stamp;
 }
 
 
