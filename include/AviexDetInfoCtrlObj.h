@@ -1,10 +1,10 @@
 #ifndef AVIEXDETINFOCTRLOBJ_H
 #define AVIEXDETINFOCTRLOBJ_H
 
-#include "Debug.h"
+#include "lima/Debug.h"
 //#include "Aviex.h"
 #include "AviexCompatibility.h"
-#include "HwDetInfoCtrlObj.h"
+#include "lima/HwDetInfoCtrlObj.h"
 
 
 namespace lima {

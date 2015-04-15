@@ -1,11 +1,11 @@
 #ifndef AVIEXCAMERA_H
 #define AVIEXCAMERA_H
 
-#include "Debug.h"
+#include "lima/Debug.h"
 #include "AviexCompatibility.h"
-#include "Constants.h"
-#include "HwBufferMgr.h"
-#include "ThreadUtils.h"
+#include "lima/Constants.h"
+#include "lima/HwBufferMgr.h"
+#include "lima/ThreadUtils.h"
 
 
 

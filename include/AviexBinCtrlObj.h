@@ -1,9 +1,9 @@
 #ifndef AVIEXBINCTRLOBJ_H
 #define AVIEXBINCTRLOBJ_H
 
-#include "Debug.h"
+#include "lima/Debug.h"
 #include "AviexCompatibility.h"
-#include "HwInterface.h"
+#include "lima/HwInterface.h"
 #include "AviexCamera.h"
 
 namespace lima
