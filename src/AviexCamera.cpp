@@ -209,8 +209,8 @@ void Camera::CameraThread::execStartAcq()
                                                      nb_bytes_to_copy,
                                                      &nb_bytes_copied);
             CHECK_MX_STATUS(mx_status, "Camera::execStartAcq()");
-
-            DEB_TRACE() << "\t- Timestamp  = " << timestamp << " (ms)";
+            
+            DEB_TRACE() << "\t- Timestamp  = " << std::fixed<<timestamp << " (ms)";
             DEB_TRACE() << "\t- Frame size  = " << m_cam->m_frame_size;
             DEB_TRACE() << "\t- NB. Bytes to Copy = " << nb_bytes_to_copy;
             DEB_TRACE() << "\t- NB. Copied Bytes  = " << nb_bytes_copied;
@@ -360,11 +360,11 @@ void Camera::CameraThread::execStartMeasureFloodField()
     buffer_mgr.setStartTimestamp(Timestamp::now());
 
     /////////////////////////////////////////////////////////////////////////////////////////
-    // Loop while detector is busy : i.e acuiring Flood Field and made some corrections
+    // Loop while detector is busy : i.e acquiring Flood Field and made some corrections
     /////////////////////////////////////////////////////////////////////////////////////////
     DEB_TRACE() << "CameraThread::execStartMeasureFloodField - Loop while 'Detector is Busy ...";
     DEB_TRACE() << "Waiting for the Mx Image Acquisition ...";
-    while(m_cam->isBusy())//	See if the acqusition OR computation is still in progress.
+    while(m_cam->isBusy())//	See if the acquisition OR computation is still in progress.
     {
         //Force quit the thread if command stop() is launched by client
         if(m_force_stop)
@@ -602,12 +602,12 @@ void Camera::prepareAcq()
         mx_status_type mx_status;
 
         // dh_readout_delay_time
-        DEB_TRACE() << "Set register 'dh_readout_delay_time' = " << m_readout_delay_time << " (ms)";
+        DEB_TRACE() << "Set register 'dh_readout_delay_time' = " << m_readout_delay_time/100 << " (ms)";
         mx_status = mx_area_detector_set_register(m_mx_record, "dh_readout_delay_time", m_readout_delay_time);
         CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()");
 
         // dh_initial_delay_time
-        DEB_TRACE() << "Set register 'dh_initial_delay_time' = " << m_initial_delay_time << " (ms)";
+        DEB_TRACE() << "Set register 'dh_initial_delay_time' = " << m_initial_delay_time/100 << " (ms)";
         mx_status = mx_area_detector_set_register(m_mx_record, "dh_initial_delay_time", m_initial_delay_time);
         CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()");
 
@@ -622,7 +622,7 @@ void Camera::prepareAcq()
          */
 
         // ccd_readout_time
-        DEB_TRACE() << "Get CCD readout time .";
+        //DEB_TRACE() << "Get CCD readout time .";
         mx_status = mx_area_detector_get_detector_readout_time(m_mx_record, &m_ccd_readout_time);
         CHECK_MX_STATUS(mx_status, "Camera::prepareAcq()");
         m_ccd_readout_time *= 1000.; // from seconds to milliseconds        
@@ -1201,7 +1201,7 @@ std::string Camera::getExtraParam(const std::string& name)
 double Camera::computeTimestamp(MX_IMAGE_FRAME* image_frame, long num_exp)
 {
     DEB_MEMBER_FUNCT();
-    DEB_TRACE() << "Camera::_open";
+//    DEB_TRACE() << "Camera::computeTimestamp";
     CHECK_MX_RECORD(m_mx_record, "Camera::computeTimestamp()");
     mx_status_type mx_status;
     if(num_exp == 0)
