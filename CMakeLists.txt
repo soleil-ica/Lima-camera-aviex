@@ -45,7 +45,7 @@ endif()
 target_link_libraries(lima${NAME} limacore)
 target_link_libraries(lima${NAME} ${AVIEX_MX_LIB})
 
-include(CameraVERSION)
+limatools_set_library_soversion(lima${NAME} "VERSION")
 install(TARGETS lima${NAME} LIBRARY DESTINATION lib)
 
 
