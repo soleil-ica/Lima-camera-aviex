@@ -21,97 +21,82 @@ Used at the SWING beamline of Synchrotron SOLEIL to make timeresolved SAXS measu
 
 This Lima plugin controls an Aviex camera under linux.
 
-It is based on the MX beamline control toolkit which can be found at http://mx.iit.edu
+It is based on the `MX beamline control <http://mx.iit.edu>`_ toolkit.
 
-It has been tested at the Synchrotron SOLEIL facility, but is not already installed on a Beamline.
+It has been tested at the Synchrotron SOLEIL facility, but has not been installed yet on a Beamline.
 
 Module configuration
 ````````````````````
-Previously to this you have to compile/install the Mx Library/Driver to the default path (/opt/mx/).
 
-Starting the Mx driver doing this :
+First, compile the Mx Library/Driverand and install it in the default path (``/opt/mx/``).
 
-.. code-block:: cpp
+Start the Mx driver with:
+
+.. code-block:: sh
 
 	cd /opt/mx/sbin/
 	./mx start
 
-The minimum configuration file is *config.inc* :
+Then, follow the generic instructions in :ref:`build_installation`. If using CMake directly, add the following flag:
 
 .. code-block:: sh
 
-  COMPILE_CORE=1
-  COMPILE_SIMULATOR=0
-  COMPILE_SPS_IMAGE=1
-  COMPILE_ESPIA=0
-  COMPILE_FRELON=0
-  COMPILE_MAXIPIX=0
-  COMPILE_PILATUS=0
-  COMPILE_BASLER=0
-  COMPILE_AVIEX=1
-  COMPILE_CBF_SAVING=0
-  export COMPILE_CORE COMPILE_SPS_IMAGE COMPILE_SIMULATOR \
-         COMPILE_ESPIA COMPILE_FRELON COMPILE_MAXIPIX COMPILE_AVIEX COMPILE_PILATUS \
-         COMPILE_BASLER COMPILE_CBF_SAVING
+ -DLIMACAMERA_AVIEX=true
 
-
-See :ref:`Compilation`
-
+For the Tango server installation, refers to :ref:`tango_installation`.
 
 Initialisation and Capabilities
-````````````````````````````````
-In order to help people to understand how the camera plugin has been implemented in LImA this section
-provide some important information about the developer's choices.
+```````````````````````````````
+
+Implementing a new plugin for new detector is driven by the LIMA framework but the developer has some freedoms to choose which standard and specific features will be made available. This section is supposed to give you the correct information regarding how the camera is exported within the LIMA framework.
 
 Camera initialisation
-......................
+.....................
 
-There are 2 parameter to be filled by your Lima client:
+There are 2 parameters to be filled with your Lima client:
 
-	- The detector friendly name , can be any string defined by user.
-	- The detector database file name : this file must contains configuration parameters as IP adress, port.
+	- The detector friendly name: can be any string defined by user.
+	- The detector database file name: this file must contains configuration parameters such as IP adress, port.
 
 Std capabilites
-................
+...............
 
-This plugin has been implemented in respect of the mandatory capabilites but with some limitations according 
-to some programmer's  choices.  We only provide here extra information for a better understanding
-of the capabilities for the Aviex camera.
+This plugin has been implemented in respect of the mandatory capabilites but with some limitations according to some programmer's choices. We only provide here extra information for a better understanding of the capabilities for the Aviex camera.
 
 * HwDetInfo
-  
+
  - Max image size is : 4096 * 4096
  - 16 bit unsigned type is supported
 
-* HwSync
+* HwSync trigger type supported are:
 
-  trigger type supported are:
 	- IntTrig
 	- ExtTrigSingle
-  
+
 Optional capabilites
 ........................
 
 * HwBin
+
 	- 1 * 1
 	- 2 * 2
 	- 4 * 4
 	- 8 * 8
-	- ...
-
-Binning above are typical values, but binning is not necessarily square.
+	- Binning above are typical values, but binning is not necessarily square.
 
 * HwRoi
-	Not yet implemented 
+
+	Not yet implemented
 
 Configuration
 `````````````
 
-No Specific hardware configuration are needed
+No specific hardware configuration is needed.
 
 How to use
 ````````````
-here is the list of accessible fonctions to configure and use the Aviex detector:
+
+Here is the list of accessible fonctions to configure and use the Aviex detector:
 
 .. code-block:: cpp
 
@@ -123,7 +108,7 @@ here is the list of accessible fonctions to configure and use the Aviex detector
 	void getGapMultiplier(double& gap_mult);
 	void setGapMultiplier(double  gap_mult);
 	void getMxLibraryVersion(std::string& version);
-	void getInternalAcqMode(std::string& acq_mode);	
+	void getInternalAcqMode(std::string& acq_mode);
 	//! Available mode : ONESHOT, MULTIFRAME, GEOMETRICAL, MEASURE_DARK, MEASURE_FLOOD_FIELD
 	void setInternalAcqMode(const std::string& mode);
 	void getReadoutDelayTime(double& readout_delay);
@@ -138,7 +123,3 @@ here is the list of accessible fonctions to configure and use the Aviex detector
 	//! FLOOD_CORRECTION_BIT_POSITION		= 3
 	//! GEOM_CORRECTION_BIT_POSITION		= 12
 	void setCorrectionFlags(unsigned long);
-
-
-
-
